@@ -16,7 +16,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
 endif()
 
 
-set(SOURCE_FILES main.cpp server.cpp)
+set(SOURCE_FILES main.cpp server.cpp utils.cpp)
 add_executable(main ${SOURCE_FILES}) 
 
 MESSAGE("  COMPILATION UNITS: ${SOURCE_FILES}") 

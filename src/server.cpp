@@ -10,8 +10,10 @@
 #include <memory>
 #include <regex>
 #include <string>
+#include <thread>
 
 #include "server.hpp"
+#include "utils.hpp"
 
 namespace beast = boost::beast;   // from <boost/beast.hpp>
 namespace http = beast::http;     // from <boost/beast/http.hpp>
@@ -42,17 +44,10 @@ public:
   }
 
 private:
-  // The socket for the currently connected client.
   tcp::socket socket_;
-
-  // The buffer for performing reads.
   beast::flat_buffer buffer_{8192};
-
-  // The request message.
-  http::request<http::string_body> request_;
-
-  // The response message.
-  http::response<http::dynamic_body> response_;
+  request request_;
+  response response_;
 
   // The timer for putting a deadline on connection processing.
   net::steady_timer deadline_{socket_.get_executor(), std::chrono::seconds(10)};
@@ -99,43 +94,25 @@ private:
 
   // Construct a response message based on the program state.
   void create_response() {
-
     auto path = std::string(request_.target());
-    std::cout << "Path: " << path << std::endl;
-    std::cout << "Body: " << request_.body() << std::endl;
-    std::cout << request_ << std::endl;
-
-    //    http::request_parser<http::dynamic_body> parser;
-
-    for (auto const &field : request_)
-      std::cout << "FIELDS: " << field.name() << " = " << field.value() << "\n";
-
-    std::cout << "Server: " << request_[http::field::host] << std::endl;
 
     // Read the header
     //   http::read(request_, parser);
-
     //    std::cout << "HOST: " << parser.get()[http::field::host] << std::endl;
     //    std::cout << "HOST: " << parser.get()["host"] << std::endl;
 
-    std::map<std::string, std::function<void()>>::iterator it =
+    std::map<std::string, handler_signature>::iterator it =
         server->d_path_handlers.begin();
 
     // Iterate over the map using Iterator till end.
     while (it != server->d_path_handlers.end()) {
       // Accessing KEY from element pointed by it.
       std::string word = it->first;
-
-      // Accessing VALUE from element pointed by it.
-      // int count = it->second;
-
-      //      std::cout << word << " :: " << std::endl;
-
       std::smatch sm_res;
       std::regex e(word);
       if (std::regex_match(path, sm_res, e)) {
-        std::cout << "Match found :" << word << std::endl;
-        it->second();
+        //    std::cout << "Match found :" << word << std::endl;
+        it->second(server, &request_, &response_);
         return;
       }
 
@@ -143,13 +120,10 @@ private:
       it++;
     }
 
-    /*
-        auto handler = server->d_path_handlers.find(path);
-        if (handler != server->d_path_handlers.end()) {
-          std::cout << "Target handler found" << std::endl;
-          handler->second();
-        }
-        */
+    response_.result(http::status::not_found);
+    response_.set(http::field::content_type, "text/plain");
+    beast::ostream(response_.body()) << "File not found\r\n";
+
     /*
         if (request_.target() == "/count") {
           response_.set(http::field::content_type, "text/html");
@@ -218,7 +192,7 @@ void Server::http_server(tcp::acceptor &acceptor, tcp::socket &socket) {
 
 //------------------------------------------------------------------------------
 
-void Server::Attach(std::string path, std::function<void()> func) {
+void Server::Attach(std::string path, handler_signature func) {
   d_path_handlers.insert(std::make_pair(path, func));
 }
 
@@ -238,23 +212,16 @@ bool Server::ExecPathHandler(
 void Server::Start(const unsigned short port) {
   try {
     std::cout << "Starting server on port " << port << std::endl;
-
     try {
-
       auto const address = net::ip::make_address("0.0.0.0");
-      // unsigned short port = static_cast<unsigned short>(port);
-
       net::io_context ioc{1};
-
       tcp::acceptor acceptor{ioc, {address, port}};
       tcp::socket socket{ioc};
       http_server(acceptor, socket);
-
       ioc.run();
     } catch (std::exception const &e) {
       std::cerr << "Error: " << e.what() << std::endl;
     }
-
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
   }
