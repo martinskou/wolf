@@ -10,6 +10,7 @@ void handler_demo(Server::Server *s, Server::request *req,
                   Server::response *res) {
 
   auto form = Server::Form(req);
+  auto session = Server::Session(req, res);
 
   auto path = std::string(req->target());
 
@@ -32,10 +33,11 @@ void handler_demo(Server::Server *s, Server::request *req,
       << form["x"]
       << "<br>"
          "name="
-      << form["name"] << "<br>"
-
+      << form["name"] << "<br>" << session.get_cookie("session") << "<br>"
       << "</body>\n"
       << "</html>\n";
+
+  session.set_cookie("y", "14");
 
   //  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 

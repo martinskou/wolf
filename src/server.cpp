@@ -160,6 +160,8 @@ private:
     auto self = shared_from_this();
 
     response_.set(http::field::content_length, response_.body().size());
+    response_.set(http::field::server, "Wolf");
+    // response.set(field::content_type, "text/plain");
 
     http::async_write(socket_, response_,
                       [self](beast::error_code ec, std::size_t) {
