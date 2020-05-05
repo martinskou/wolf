@@ -43,26 +43,31 @@ public:
     res_d = res;
 
     // Print each cookie in the request
+    std::cout << "Param list: " << std::endl;
     for (auto param : http::param_list((*req)[http::field::cookie]))
       std::cout << "Cookie '" << param.first << "' has value '" << param.second
                 << "'\n";
 
     auto cookie_str = std::string((*req)[http::field::cookie]);
+
     std::cout << "Session: " << cookie_str << std::endl;
     if (cookie_str != "") {
-      std::vector<std::string> cookie_vec;
-      boost::split(cookie_vec, cookie_str, [](char c) { return c == ';'; });
-      for (auto cs : cookie_vec) {
-        std::vector<std::string> one_cookie_str;
-        boost::split(one_cookie_str, cs, [](char c) { return c == '='; });
-        if (one_cookie_str.size() == 2) {
-          auto k = one_cookie_str[0];
-          auto v = one_cookie_str[1];
-          boost::trim(k);
-          boost::trim(v);
-          Cookies.insert(make_pair(k, v));
-        }
-      }
+
+      Cookies = utils::double_split(cookie_str, ';', '=');
+
+      /*
+            std::vector<std::string> cookie_vec;
+            boost::split(cookie_vec, cookie_str, [](char c) { return c == ';';
+         }); for (auto cs : cookie_vec) { std::vector<std::string>
+         one_cookie_str; boost::split(one_cookie_str, cs, [](char c) { return c
+         == '='; }); if (one_cookie_str.size() == 2) { auto k =
+         one_cookie_str[0]; auto v = one_cookie_str[1]; boost::trim(k);
+                boost::trim(v);
+                Cookies.insert(make_pair(k, v));
+              }
+            }
+      */
+
     } else {
       auto u = utils::get_uuid();
       Cookies.insert(make_pair("session", u));

@@ -16,6 +16,9 @@ std::string get_uuid();
 
 bool url_decode(const std::string &in, std::string &out);
 
+std::map<std::string, std::string>
+double_split(const std::string &in, const char primary, const char secondary);
+
 std::map<std::string, std::string> url_to_map(const std::string &in);
 void url_to_map(std::map<std::string, std::string> *mp, const std::string &in);
 

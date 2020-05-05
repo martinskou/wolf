@@ -33,7 +33,9 @@ void handler_demo(Server::Server *s, Server::request *req,
       << form["x"]
       << "<br>"
          "name="
-      << form["name"] << "<br>" << session.get_cookie("session") << "<br>"
+      << form["name"] << "<br>"
+      << "session: " << session.get_cookie("session") << "<br>"
+      << "y:" << session.get_cookie("y") << "<br>"
       << "</body>\n"
       << "</html>\n";
 
