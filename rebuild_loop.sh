@@ -51,7 +51,7 @@ while true; do
         cd ..
         printf "${ORANGE}[Runner]${NC} ${RED}-- end --${NC}\n"
     fi
-    fswatch -1 -r -e ".*" -i "\\.cpp$" -i "\\.hpp$" -i "\\.html$" .
+    fswatch -1 -r -e ".*" -i "\\.cpp$" -i "\\.hpp$"  -i "\\.h$" -i "\\.html$" .
     clear
     printf "${ORANGE}[Runner]${NC} File changed, killing $PID\n"
     kill $PID
