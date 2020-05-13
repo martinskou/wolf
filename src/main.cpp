@@ -7,6 +7,7 @@
 #include "server.hpp"
 #include "model.hpp"
 #include "database.hpp"
+#include "crud.hpp"
 
 void handler_demo(Server::Server *s, Server::request *req,
                   Server::response *res) {
@@ -80,66 +81,60 @@ s->cookies.GetHeader());
 }
 */
 
-/*
-template<typename T, typename F>
-T make_object() {
-    std::cout << F::TableColumns << std::endl;
-    auto is = std::make_integer_sequence<int, F::TableColumns>{};
-    std::cout <<  is[0]  << std::endl;
 
-    return T{};
-}
-*/
-
-
-class Data {
-public:
-    std::any data;
-
-    Data(int x) { data=std::any(x); }
-    Data(char *x) { data=std::any(std::string(x)); }
-
-    operator int() const
-    {
-        return std::any_cast<int>(data);
-    }
-    operator std::string() const
-    {
-        return std::any_cast<std::string>(data);
-    }
-};
-
-template<typename T, const int... Is>
-T make_obj_from_seq(const std::integer_sequence<int, Is...>, std::vector<Data> data)
-{
-    return T{data.at(Is)...};
-}
-
-template<typename T, int N>
-T make_object(std::vector<Data> data)
-{
-    return make_obj_from_seq<T>(std::make_integer_sequence<int, N>{},data);
-}
 
 
 int main(int argc, char *argv[]) {
     auto db = Database("test.sqlite");
     Model::SetDB(&db);
 
-    Model::Users::CreateTable(true);
+    Model::UserData::CreateTable(false);
 
-    auto u=Model::Users::Get(1);
-    std::cout << u << std::endl;
+    /*
+    Model::User u;
+    if (Model::UserData::Get(u, 1)) {
+        std::cout << u << std::endl;
+    }
 
-//    std::vector<Data> cl{13,"a","b","c"};
-
-//    std::cout << "MAKE_OBJ" << std::endl;
-//    std::cout << make_object<Model::User,4>(cl) << std::endl;
+    Model::User x{2, "xxx", "y", "z", 1};
+    Model::UserData::Insert2(x);
+    */
 
     Server::Server s = Server::Server();
-    s.Attach("/demo/", handler_demo);
-    s.Attach("/de.*", handler_demo);
-    s.Attach("/dex", handler_demo);
-    s.Attach("^/bio/(.*)/$", handler_demo);
+    s.Attach(Server::GET, "/demo/", handler_demo);
+    s.Attach(Server::GET, "/de.*", handler_demo);
+    s.Attach(Server::GET, "/dex", handler_demo);
+    s.Attach(Server::GET, "^/bio/(.*)/$", handler_demo);
+
+    auto c = Crud::Crud<Model::User, Model::UserSerializer>
+            (Model::DB, "Users","/crud/user",
+             [](std::string q) -> std::vector<Model::User> { return Model::DB->Select2<Model::User, Model::UserSerializer>(); },
+             [](int id) -> Model::User { return Model::DB->GetById<Model::User, Model::UserSerializer>(id); },
+             [](Model::User t) { Model::DB->Insert2<Model::User, Model::UserSerializer>(t); }, // insert
+             [](Model::User t, int id) { Model::DB->Update2<Model::User, Model::UserSerializer>(id,t); }, // update
+             [](Model::User t, int id) { Model::DB->Delete2<Model::User, Model::UserSerializer>(id,t); } // delete
+            );
+
+    c.AddField(Crud::Field<Model::User>(
+            "Id", "id", "static", true, true,
+            [](Model::User o) -> std::string { return utils::i2s(o.id); },
+            [](Model::User &o, std::string &&v) { o.id = utils::s2i(v); }));
+
+    c.AddField(Crud::Field<Model::User>(
+            "Email", "email", "text", true, true,
+            [](Model::User o) -> std::string { return o.email; },
+            [](Model::User &o, std::string &&v) { o.email = v; }));
+
+    c.AddField(Crud::Field<Model::User>(
+            "Password", "password", "text", true, true,
+            [](Model::User o) -> std::string { return o.password; },
+            [](Model::User &o, std::string &&v) { o.password = v; }));
+
+
+    c.AddAction(html::ListAction("New user", c.root+"/edit/0"));
+
+
+    c.Attach(s);
+
     s.Start(2345);
 }

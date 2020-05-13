@@ -34,10 +34,13 @@ while true; do
     rm $EXEC 2>/dev/null
     rm $BUILD 2>/dev/null
 
-    cmake --build . 2>$BUILD
+    cmake --build . > $BUILD
+    # cmake --build . 2>$BUILD
     # go build -o $EXEC . 2> $BUILD
 
     if [ -f "$EXEC" ]; then
+        printf "${ORANGE}[Runner]${NC} ${GREEN}Build succeded\n"
+        cat $BUILD
         rm $BUILD 2>/dev/null
         cd ..
         printf "${ORANGE}[Runner]${NC} ${GREEN}Starting $EXEC\n"

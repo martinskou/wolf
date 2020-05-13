@@ -8,14 +8,16 @@ find_package (SQLite3)
 set(Boost_USE_MULTITHREADED TRUE)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options (-fdiagnostics-color=always)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    add_compile_options (-fcolor-diagnostics)
+endif ()
+
 
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 
 add_executable(main ${SOURCE_FILES})
-
-
-#set(SOURCE_FILES main.cpp server.cpp utils.cpp database.cpp)
-#add_executable(main ${SOURCE_FILES})
 
 MESSAGE("  COMPILATION UNITS: ${SOURCE_FILES}") 
 

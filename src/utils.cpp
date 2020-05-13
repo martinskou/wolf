@@ -88,7 +88,15 @@ bool url_decode(const std::string &in, std::string &out) {
   return true;
 }
 
-std::map<std::string, std::string>
+
+
+    std::vector<std::string> split(const std::string &str, const char primary) {
+        std::vector<std::string> parts;
+        boost::split(parts, str, [primary](char c) { return c == primary; });
+        return parts;
+    }
+
+    std::map<std::string, std::string>
 double_split(const std::string &in, const char primary, const char secondary) {
   std::map<std::string, std::string> rm;
 

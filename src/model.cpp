@@ -13,7 +13,7 @@ namespace Model {
     }
 
     std::ostream &operator<<(std::ostream &os, const User &u) {
-        return os << "User<" << u.id << "/" << u.username << ">";
+        return os << "User<" << u.id << "/" << u.username << "/" << u.password << "/" << u.email << ">";
     }
 
 }
