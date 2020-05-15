@@ -1,16 +1,30 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-
 #include <chrono>
 #include <thread>
 
-#include "server.hpp"
+#include "framework/server.hpp"
+#include "framework/database.hpp"
+#include "framework/crud.hpp"
+#include "framework/template.hpp"
+
 #include "model.hpp"
-#include "database.hpp"
-#include "crud.hpp"
+
+void handler_front(Server::Server *s, Server::request *req,
+                   Server::response *res, std::string arg) {
+
+    res->set(boost::beast::http::field::content_type, "text/html");
+    auto out = boost::beast::ostream(res->body());
+//    auto t = Templates::Store->templates.find("index.html");
+    auto t = Templates::Store->Find("index.html");
+//    out << t->second.text;
+    out << t.Render({{"content","123"}});
+
+}
+
 
 void handler_demo(Server::Server *s, Server::request *req,
-                  Server::response *res) {
+                  Server::response *res, std::string arg) {
 
     auto form = Server::Form(req);
     auto session = Server::Session(req, res);
@@ -85,6 +99,34 @@ s->cookies.GetHeader());
 
 
 int main(int argc, char *argv[]) {
+
+    /*
+    Templates::tree td;
+    td.put("name", "martin");
+    td.put("age", 48);
+    Templates::tree items;
+    Templates::tree i1;
+    i1.put("name", "a");
+    i1.put("email", "b");
+    items.push_back(std::make_pair("", i1));
+    Templates::tree i2;
+    i2.put("name", "c");
+    i2.put("email", "d");
+    items.push_back(std::make_pair("", i2));
+    td.add_child("items", items);
+
+    Templates::write_json(std::cout, td);
+
+    std::cout << std::endl;
+
+    auto tp = Templates::Store->templates.find("test.html");
+    std::cout << tp->second.render(td) << std::endl;
+
+    return 0;
+    */
+
+    Templates::LoadTemplates("site/templates");
+
     auto db = Database("test.sqlite");
     Model::SetDB(&db);
 
@@ -100,19 +142,45 @@ int main(int argc, char *argv[]) {
     Model::UserData::Insert2(x);
     */
 
+
     Server::Server s = Server::Server();
+    s.Attach(Server::GET, "/", handler_front);
     s.Attach(Server::GET, "/demo/", handler_demo);
     s.Attach(Server::GET, "/de.*", handler_demo);
     s.Attach(Server::GET, "/dex", handler_demo);
     s.Attach(Server::GET, "^/bio/(.*)/$", handler_demo);
 
+    s.Attach(Server::GET, "^/assets/(.*)", Server::handler_file, "site/assets/");
+    s.Attach(Server::GET, "^/favicon.ico$", Server::handler_single_file, "site/assets/favicon.png");
+
+
     auto c = Crud::Crud<Model::User, Model::UserSerializer>
-            (Model::DB, "Users","/crud/user",
-             [](std::string q) -> std::vector<Model::User> { return Model::DB->Select2<Model::User, Model::UserSerializer>(); },
-             [](int id) -> Model::User { return Model::DB->GetById<Model::User, Model::UserSerializer>(id); },
-             [](Model::User t) { Model::DB->Insert2<Model::User, Model::UserSerializer>(t); }, // insert
-             [](Model::User t, int id) { Model::DB->Update2<Model::User, Model::UserSerializer>(id,t); }, // update
-             [](Model::User t, int id) { Model::DB->Delete2<Model::User, Model::UserSerializer>(id,t); } // delete
+            (Model::DB, "Users", "/crud/user", "username",
+
+//             [](std::string q) -> std::vector<Model::User> { return Model::DB->Select2<Model::User, Model::UserSerializer>(); },
+             Crud::GenSelect<Model::User, Model::UserSerializer>(Model::DB),
+
+//             [](int id) -> Model::User { return Model::DB->GetById<Model::User, Model::UserSerializer>(id); },
+             Crud::GenValue<Model::User, Model::UserSerializer>(Model::DB),
+
+//             [](Model::User t) { Model::DB->Insert2<Model::User, Model::UserSerializer>(t); }, // insert
+             Crud::GenInsert<Model::User, Model::UserSerializer>(Model::DB),
+
+//             [](Model::User t, int id) { Model::DB->Update2<Model::User, Model::UserSerializer>(id, t); }, // update
+             Crud::GenUpdate<Model::User, Model::UserSerializer>(Model::DB),
+
+//             [](Model::User t, int id) { Model::DB->Delete2<Model::User, Model::UserSerializer>(id, t); }, // delete
+             Crud::GenDelete<Model::User, Model::UserSerializer>(Model::DB),
+
+         /*    [](Server::request *req, Server::response *res, std::string ct, std::string where) { // render
+                 auto t = Templates::Store->Find("index.html");
+                 auto x=t.Render({{"content", ct}});
+                 res->set(boost::beast::http::field::content_type, "text/html");
+                 auto out = boost::beast::ostream(res->body());
+                 out << x;
+             }*/
+             Crud::GenResponse<Model::User, Model::UserSerializer>(Templates::Store->FindPtr("index.html"))
+
             );
 
     c.AddField(Crud::Field<Model::User>(
@@ -126,15 +194,24 @@ int main(int argc, char *argv[]) {
             [](Model::User &o, std::string &&v) { o.email = v; }));
 
     c.AddField(Crud::Field<Model::User>(
+            "Username", "username", "text", true, true,
+            [](Model::User o) -> std::string { return o.username; },
+            [](Model::User &o, std::string &&v) { o.username = v; }));
+
+    c.AddField(Crud::Field<Model::User>(
             "Password", "password", "text", true, true,
             [](Model::User o) -> std::string { return o.password; },
             [](Model::User &o, std::string &&v) { o.password = v; }));
 
-
-    c.AddAction(html::ListAction("New user", c.root+"/edit/0"));
-
+    c.AddAction(html::ListAction("New user", c.root + "/edit/0"));
 
     c.Attach(s);
+
+    color::Modifier green(color::FG_GREEN);
+    color::Modifier def(color::FG_DEFAULT);
+    std::cout << "App started"
+              << " " << green << "127.0.0.1:" << 2345 << def << " "
+              << "🚀" << std::endl;
 
     s.Start(2345);
 }

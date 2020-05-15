@@ -15,7 +15,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif ()
 
 
-file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
+file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/framework/*.cpp)
 
 add_executable(main ${SOURCE_FILES})
 

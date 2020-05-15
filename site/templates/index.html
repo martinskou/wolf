@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<HTML lang="da">
+    <HEAD>
+        <TITLE></TITLE>
+        <meta charset="UTF-8">
+        <META name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+        <META name="description" content="">
+        <script src="/assets/app.js"></script>        
+        <link rel="stylesheet" href="/assets/bulma.min.css" rel="preload" as="style">
+        <link rel="stylesheet" href="/assets/app.css" rel="preload" as="style">
+    </HEAD>
+
+    <BODY class="preload ">
+
+        <div class="sticky" id="sticky">
+            <div class="navbar" id="navbar">
+                <NAV class="navbar container" role="navigation" aria-label="main navigation">
+                    <div class="navbar-brand">
+                        <a href="/" class="navbar-item">
+                            <img height="75" class="logo"
+                                Alt="Infoserv Hosting Logo" src="/assets/hosting-2.svg" id="logo" width="300"></img>
+                        </a>
+
+
+                        <A class="navbar-burger burger" id="burger" role="button" aria-label="menu"
+                            aria-expanded="fAlse" data-target="navbarBasicExample"><span aria-hidden="true"></span>
+                            <span aria-hidden="true"></span>
+                            <span aria-hidden="true"></span>
+                        </A>
+                    </div>
+                    <div class="navbar-menu" id="main-menu">
+
+                        <div class="navbar-end">
+
+<!--
+                                <div class="navbar-item has-dropdown is-hoverable">
+                                    <A class="navbar-link">x</A>
+                                    <div class="navbar-dropdown">
+                                        <A href="" class="navbar-item">y</A>
+
+                                        <A href="" class="navbar-item child">z</A>
+                                    </div>
+                                </div>
+
+                                <A class="navbar-item" href="">a</A>
+-->
+                        </div>
+                    </div>
+                </NAV>
+            </div>
+        </div>
+
+
+        <div id="content" class="content container">
+            <article>
+                {{content}}
+            </article>
+        </div>
+
+
+    </BODY>
+</HTML>

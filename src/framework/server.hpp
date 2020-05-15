@@ -30,8 +30,8 @@ namespace Server {
     using request = http::request<http::dynamic_body>;
     using response = http::response<http::dynamic_body>;
 
-    using handler_signature = std::function<void(Server *, request *, response *)>;
-    using handler_vector = std::vector<std::tuple<std::string, std::string, handler_signature>>;
+    using handler_signature = std::function<void(Server *, request *, response *, std::string)>;
+    using handler_vector = std::vector<std::tuple<std::string, std::string, handler_signature, std::string>>;
 
 
     class Server {
@@ -44,8 +44,9 @@ namespace Server {
     public:
         void Start(const unsigned short port);
 
-        void Attach(std::string method,std::string path, handler_signature func);
+        void Attach(std::string method,std::string path, handler_signature func, std::string arg="");
     };
+
 
     class Session {
     public:
@@ -65,22 +66,7 @@ namespace Server {
 
             std::cout << "Session: " << cookie_str << std::endl;
             if (cookie_str != "") {
-
                 Cookies = utils::double_split(cookie_str, ';', '=');
-
-                /*
-                      std::vector<std::string> cookie_vec;
-                      boost::split(cookie_vec, cookie_str, [](char c) { return c == ';';
-                   }); for (auto cs : cookie_vec) { std::vector<std::string>
-                   one_cookie_str; boost::split(one_cookie_str, cs, [](char c) { return c
-                   == '='; }); if (one_cookie_str.size() == 2) { auto k =
-                   one_cookie_str[0]; auto v = one_cookie_str[1]; boost::trim(k);
-                          boost::trim(v);
-                          Cookies.insert(make_pair(k, v));
-                        }
-                      }
-                */
-
             } else {
                 auto u = utils::get_uuid();
                 Cookies.insert(make_pair("session", u));
@@ -95,8 +81,6 @@ namespace Server {
                 res_d->insert("Set-Cookie", key + "=" + val);
                 std::cout << "Set-Cookie " << key << " = " << val << std::endl;
             }
-            //    std::cout << "Set-Cookie:" << cs << std::endl;
-            //    res_d->(http::field::set_cookie, cs);
         }
 
         std::string get_cookie(std::string key) {
@@ -160,6 +144,17 @@ namespace Server {
             return "";
         }
     };
+
+
+    void send_file(std::string fname, response *res);
+
+    void handler_single_file(Server *s, request *req,
+                             response *res, std::string static_file);
+
+
+    void handler_file(Server *s, request *req,
+                      response *res, std::string root_path);
+
 
 } // namespace Server
 

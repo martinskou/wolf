@@ -1,0 +1,19 @@
+{
+    "name": "main",
+    "content": [
+        {
+            "slug": "/",
+            "name": "Home"
+        },
+        {
+            "slug": "/products",
+            "name": "Products",
+            "children": [
+                {
+                    "slug": "/products/mover",
+                    "name": "Mover"
+                }
+            ]
+        }
+    ]
+}

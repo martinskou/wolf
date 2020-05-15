@@ -1,0 +1,19 @@
+
+
+<h1>Dashboard</h1>
+
+
+
+
+## for i in items
+<div class="box">
+    <b>{{ i.title }} {{ loop.index1 }}</b><br>
+    {{ i.subtitle }}<br><br>
+
+## for l in i.links
+    - <a href="{{ l.link }}">{{ l.title }}</a><br>
+## endfor 
+</div>
+## endfor 
+
+

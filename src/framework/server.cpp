@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <fstream>
+#include <iosfwd>
 #include <memory>
 #include <regex>
 #include <string>
@@ -102,10 +104,10 @@ namespace Server {
         void create_response() {
             auto path = std::string(request_.target());
 
-            // Read the header
-            //   http::read(request_, parser);
-            //    std::cout << "HOST: " << parser.get()[http::field::host] << std::endl;
-            //    std::cout << "HOST: " << parser.get()["host"] << std::endl;
+            auto lp = path.find_last_of('?');
+            if (lp != std::string::npos) {
+                path.erase(lp, std::string::npos);
+            }
 
             handler_vector::iterator it =
                     server->d_path_handlers.begin();
@@ -122,7 +124,8 @@ namespace Server {
                         //    std::cout << "Match found :" << word << std::endl;
                         try {
                             auto hfunc=std::get<2>(*it);
-                            hfunc(server, &request_, &response_);
+                            std::string arg=std::get<3>(*it);
+                            hfunc(server, &request_, &response_, arg);
                         } catch (std::exception const &e) {
                             std::cerr << "Unhandled error in handler: " << e.what() << std::endl;
                         }
@@ -138,36 +141,6 @@ namespace Server {
             response_.result(http::status::not_found);
             response_.set(http::field::content_type, "text/plain");
             beast::ostream(response_.body()) << "File not found\r\n";
-
-            /*
-                if (request_.target() == "/count") {
-                  response_.set(http::field::content_type, "text/html");
-                  beast::ostream(response_.body())
-                      << "<html>\n"
-                      << "<head><title>Request count</title></head>\n"
-                      << "<body>\n"
-                      << "<h1>Request count</h1>\n"
-                      << "<p>There have been " << my_program_state::request_count()
-                      << " requests so far.</p>\n"
-                      << "</body>\n"
-                      << "</html>\n";
-                } else if (request_.target() == "/time") {
-                  response_.set(http::field::content_type, "text/html");
-                  beast::ostream(response_.body())
-                      << "<html>\n"
-                      << "<head><title>Current time</title></head>\n"
-                      << "<body>\n"
-                      << "<h1>Current time</h1>\n"
-                      << "<p>The current time is " << my_program_state::now()
-                      << " seconds since the epoch.</p>\n"
-                      << "</body>\n"
-                      << "</html>\n";
-                } else {
-                  response_.result(http::status::not_found);
-                  response_.set(http::field::content_type, "text/plain");
-                  beast::ostream(response_.body()) << "File not found\r\n";
-                }
-                */
         }
 
         // Asynchronously transmit the response message.
@@ -176,7 +149,6 @@ namespace Server {
 
             response_.set(http::field::content_length, response_.body().size());
             response_.set(http::field::server, "Wolf");
-            // response.set(field::content_type, "text/plain");
 
             http::async_write(socket_, response_,
                               [self](beast::error_code ec, std::size_t) {
@@ -209,8 +181,8 @@ namespace Server {
 
 //------------------------------------------------------------------------------
 
-    void Server::Attach(std::string method, std::string path, handler_signature func) {
-        d_path_handlers.push_back(std::tuple(method, path, func));
+    void Server::Attach(std::string method, std::string path, handler_signature func, std::string arg) {
+        d_path_handlers.push_back(std::tuple(method, path, func, arg));
     }
 
     void Server::Start(const unsigned short port) {
@@ -237,6 +209,83 @@ namespace Server {
 //        auto out = boost::beast::ostream(res->body());
 //        out << "<html><meta charset='utf-8'>\n"
 
+    }
+
+
+    void send_file(std::string fname, response *res) {
+
+        auto out = boost::beast::ostream(res->body());
+
+        auto ifs = std::make_shared<std::ifstream>();
+
+        ifs->open(fname, std::ifstream::in | std::ios::binary | std::ios::ate);
+
+        if (*ifs) {
+            auto length = ifs->tellg();
+            ifs->seekg(0, std::ios::beg);
+
+            res->set(boost::beast::http::field::content_length, to_string(length));
+
+
+            if (utils::ends_with(fname, ".js")) {
+                res->set(boost::beast::http::field::content_type, "application/javascript; charset=utf-8");
+            }
+            if (utils::ends_with(fname, ".svg")) {
+                res->set(boost::beast::http::field::content_type, "image/svg+xml");
+            }
+            if (utils::ends_with(fname, ".png")) {
+                res->set(boost::beast::http::field::content_type, "image/png");
+            }
+            if (utils::ends_with(fname, ".jpg")) {
+                res->set(boost::beast::http::field::content_type, "image/jpg");
+            }
+            if (utils::ends_with(fname, ".css")) {
+                res->set(boost::beast::http::field::content_type, "text/css");
+            }
+
+            static std::vector<char> buffer(131072); // Safe when server is running on one thread
+            std::streamsize read_length;
+            bool done = false;
+            while (!done) {
+                read_length = ifs->read(&buffer[0], static_cast<std::streamsize>(buffer.size())).gcount();
+                if (read_length) {
+                    if (read_length != static_cast<std::streamsize>(buffer.size())) {
+                        done=true;
+                    }
+                    out.write(&buffer[0],read_length);
+                }
+            }
+
+        } else {
+            std::cout << "file " << fname << " not found." << std::endl;
+            res->set(boost::beast::http::field::content_type, "text/html");
+            res->result(boost::beast::http::status::not_found);
+            out << "404 not found";
+        }
+
+    }
+
+
+    void handler_file(Server *s, request *req, response *res, std::string root_path) {
+        auto form = Form(req);
+
+        std::string path = form.path[2];
+        std::string fname = root_path + path;
+
+        std::cout << "FILE: " << path << " [" << fname << "]" << std::endl;
+
+        send_file(fname,res);
+    }
+
+
+    void handler_single_file(Server *s, request *req,
+                             response *res, std::string static_file) {
+        auto form = Form(req);
+
+        res->set(boost::beast::http::field::content_type, "text/html");
+        auto out = boost::beast::ostream(res->body());
+
+        send_file(static_file,res);
     }
 
 

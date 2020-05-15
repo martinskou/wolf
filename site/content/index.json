@@ -1,0 +1,27 @@
+{
+    "slug": "",
+    "title": "Front Page",
+    "description": "Blah bla",
+    "template": "index.html",
+    "content": [
+        {
+            "id": "someid",
+            "type": "hero",
+            "title": "Front Page Hero",
+            "subtitle": "Some more important tekst.",
+            "icon": "someicon",
+            "image": "someimage"
+        },
+        {
+            "type": "text",
+            "title": "A section of text",
+            "subtitle": "More important tekst.",
+            "paragraphs": [
+                "p1",
+                "p2",
+                "p3"
+            ],
+            "image": "someimage"
+        }
+    ]
+}

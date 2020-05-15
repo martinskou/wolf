@@ -34,7 +34,7 @@ while true; do
     rm $EXEC 2>/dev/null
     rm $BUILD 2>/dev/null
 
-    cmake --build . > $BUILD
+    cmake --build . --parallel 4  > $BUILD
     # cmake --build . 2>$BUILD
     # go build -o $EXEC . 2> $BUILD
 
